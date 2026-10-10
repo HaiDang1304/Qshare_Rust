@@ -1,8 +1,10 @@
 mod cli;
 mod discovery;
 mod handler;
+mod hotspot;
 mod menu;
 mod net;
+mod optical;
 mod qr;
 mod server;
 
@@ -43,6 +45,17 @@ fn enable_ansi_support() {
 #[cfg(not(windows))]
 fn enable_ansi_support() {}
 
+/// RAII Guard de tu dong tat Wi-Fi Direct Hotspot khi qshare ket thuc
+struct HotspotGuard;
+
+impl Drop for HotspotGuard {
+    fn drop(&mut self) {
+        println!("\n  \x1b[33m[qshare]\x1b[0m Dang tu dong tat diem phat Wi-Fi Direct Hotspot...");
+        hotspot::stop_wifi_hotspot();
+        println!("  \x1b[32m[qshare]\x1b[0m Da tat diem phat Wi-Fi an toan.\n");
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     enable_ansi_support();
@@ -59,8 +72,11 @@ async fn main() -> Result<()> {
     let mut chosen_output_dir = cli.output_dir;
     let mut raw_pin = cli.pin;
 
-    // Kiểm tra nếu chạy không đối số -> Bật Menu TUI tương tác (như Daytona/Kiro)
-    let is_interactive = cli.command.is_none() && cli.path.is_none() && !cli.receive;
+    let mut is_hotspot = cli.hotspot;
+    let mut is_optical = cli.optical;
+
+    // Kiem tra neu chay khong doi so -> Bat Menu TUI tuong tac (Daytona / Kiro style)
+    let is_interactive = cli.command.is_none() && cli.path.is_none() && !cli.receive && !cli.hotspot && !cli.optical;
 
     let raw_path = if is_interactive {
         match menu::run_interactive_menu().await? {
@@ -70,7 +86,7 @@ async fn main() -> Result<()> {
                 }
                 if let Some(target) = to {
                     let abs_p = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
-                    println!("  \x1b[36m[qshare send]\x1b[0m Đang kết nối trực tiếp tới máy nhận: \x1b[1m{}\x1b[0m", target);
+                    println!("  \x1b[36m[qshare send]\x1b[0m Dang ket noi truc tiep toi may nhan: \x1b[1m{}\x1b[0m", target);
 
                     let target_port = if target.contains(':') {
                         target.split(':').nth(1).and_then(|p| p.parse().ok()).unwrap_or(7878)
@@ -90,6 +106,17 @@ async fn main() -> Result<()> {
                 }
                 Some(path)
             }
+            menu::MenuAction::SendHotspot { path, pin } => {
+                is_hotspot = true;
+                if pin.is_some() {
+                    raw_pin = pin;
+                }
+                Some(path)
+            }
+            menu::MenuAction::SendOptical { path } => {
+                is_optical = true;
+                Some(path)
+            }
             menu::MenuAction::SendDirect { peer, path } => {
                 let abs_p = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
                 discovery::send_file_directly(&peer, &abs_p).await?;
@@ -107,18 +134,24 @@ async fn main() -> Result<()> {
             }
         }
     } else {
-        // Xử lý các subcommand hoặc flag tương thích ngược
+        // Xu ly cac subcommand hoac flag dong lenh
         match &cli.command {
-            Some(Commands::Send { path, port, to, pin }) => {
+            Some(Commands::Send { path, port, to, pin, hotspot, optical }) => {
                 chosen_port = *port;
+                if *hotspot {
+                    is_hotspot = true;
+                }
+                if *optical {
+                    is_optical = true;
+                }
                 if pin.is_some() {
                     raw_pin = pin.clone();
                 }
 
-                // Nếu người dùng chỉ định gửi thẳng tới IP máy nhận
+                // Neu nguoi dung chi dinh gui thang toi IP may nhan
                 if let Some(target) = to {
                     let abs_p = std::fs::canonicalize(path).unwrap_or_else(|_| path.clone());
-                    println!("  \x1b[36m[qshare send]\x1b[0m Đang kết nối trực tiếp tới máy nhận: \x1b[1m{}\x1b[0m", target);
+                    println!("  \x1b[36m[qshare send]\x1b[0m Dang ket noi truc tiep toi may nhan: \x1b[1m{}\x1b[0m", target);
                     
                     let target_port = if target.contains(':') {
                         target.split(':').nth(1).and_then(|p| p.parse().ok()).unwrap_or(7878)
@@ -151,7 +184,50 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Tạo mã PIN (tự động sinh 4 số ngẫu nhiên nếu truyền cờ --pin mà không chỉ định số)
+    // 1. TANG 3: Truyen Quang hoc (Optical Air-Gapped)
+    if is_optical {
+        let path = match raw_path {
+            Some(p) => p,
+            None => {
+                eprintln!("\n  \x1b[31m[Loi]\x1b[0m Che do truyen quang hoc yeu cau chi dinh tep can truyen.\n");
+                std::process::exit(1);
+            }
+        };
+        if !path.exists() {
+            eprintln!("\n  \x1b[31m[Loi]\x1b[0m Khong tim thay tep: \x1b[1m{}\x1b[0m\n", path.display());
+            std::process::exit(1);
+        }
+        let abs_path = std::fs::canonicalize(&path).unwrap_or(path);
+        optical::run_optical_transmission(&abs_path).await?;
+        return Ok(());
+    }
+
+    // 2. TANG 2: Khoi tao Wi-Fi Direct Hotspot P2P (neu duoc chon)
+    let mut _hotspot_guard = None;
+    let mut hotspot_session = None;
+
+    if is_hotspot {
+        if !hotspot::has_wifi_adapter() {
+            eprintln!("\n  \x1b[31m[Loi]\x1b[0m May tinh khong co card Wi-Fi de tu phat Hotspot P2P.");
+            eprintln!("  Goi y: Hay dung Che do Quang hoc (--optical) hoac ket noi vao mang Wi-Fi chung.\n");
+            std::process::exit(1);
+        }
+
+        println!("  \x1b[36m[qshare]\x1b[0m Dang khoi tao diem phat Wi-Fi Direct Hotspot P2P qua WinRT...");
+        match hotspot::start_wifi_hotspot() {
+            Ok(session) => {
+                println!("  \x1b[32m[qshare]\x1b[0m Da bat thanh cong diem phat Wi-Fi: \x1b[1m{}\x1b[0m", session.ssid);
+                _hotspot_guard = Some(HotspotGuard);
+                hotspot_session = Some(session);
+            }
+            Err(e) => {
+                eprintln!("\n  \x1b[31m[Loi]\x1b[0m Khong the bat Hotspot: {e}\n");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    // Tao ma PIN (tu dong sinh 4 so ngau nhien neu truyen co --pin ma khong chi dinh so)
     let active_pin = match raw_pin {
         Some(ref p) if p == "auto" || p.trim().is_empty() => {
             let nanos = std::time::SystemTime::now()
@@ -165,7 +241,7 @@ async fn main() -> Result<()> {
         None => None,
     };
 
-    // Xác định thư mục lưu trữ file nhận được
+    // Xac dinh thu muc luu tru tep nhan duoc
     let output_dir = chosen_output_dir.unwrap_or_else(|| {
         let downloads = PathBuf::from("./Downloads");
         if downloads.exists() || std::fs::create_dir_all(&downloads).is_ok() {
@@ -177,7 +253,7 @@ async fn main() -> Result<()> {
 
     if let Some(path) = raw_path {
         if !path.exists() {
-            eprintln!("\n  \x1b[31m[Lỗi]\x1b[0m Không tìm thấy tệp hoặc thư mục: \x1b[1m{}\x1b[0m\n", path.display());
+            eprintln!("\n  \x1b[31m[Loi]\x1b[0m Khong tim thay tep hoac thu muc: \x1b[1m{}\x1b[0m\n", path.display());
             std::process::exit(1);
         }
 
@@ -191,9 +267,9 @@ async fn main() -> Result<()> {
                 .and_then(|s| s.to_str())
                 .unwrap_or("folder")
                 .to_string();
-            target_info = format!("Thư mục: {} (Nén .zip on-the-fly)", dir_name);
+            target_info = format!("Thu muc: {} (Nen .zip on-the-fly)", dir_name);
             filename = Some(format!("{}.zip", dir_name));
-            formatted_size = Some("Thư mục nén".to_string());
+            formatted_size = Some("Thu muc nen".to_string());
             shared_path = Some(abs_path);
         } else {
             let fname = abs_path
@@ -209,40 +285,46 @@ async fn main() -> Result<()> {
             shared_path = Some(abs_path);
         }
     } else {
-        // Chế độ nhận tệp
+        // Che do nhan tep
         is_receive_mode = true;
         target_info = format!("{}", output_dir.display());
     }
 
-    // Xác định địa chỉ IP card mạng LAN thực tế
-    let local_ip = net::get_local_ip().unwrap_or(Ipv4Addr::new(127, 0, 0, 1));
-    let bind_ip = if cli.public {
-        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
+    // Xac dinh dia chi IP lang nghe
+    let (bind_ip, local_ip) = if let Some(ref session) = hotspot_session {
+        (IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), session.ip)
     } else {
-        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
+        let ip = net::get_local_ip().unwrap_or(Ipv4Addr::new(127, 0, 0, 1));
+        (IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ip)
     };
 
-    // Tìm và bind vào port khả dụng (tự nhảy port nếu trùng)
+    // Tim va bind vao port kha dung (tu dong nhay port neu trung)
     let (listener, actual_port) = net::bind_listener(bind_ip, chosen_port).await?;
     let share_url = format!("http://{}:{}", local_ip, actual_port);
 
-    // Nếu ở chế độ Receive: Kích hoạt dịch vụ phát hiện LAN UDP Responder
-    if is_receive_mode {
-        discovery::start_discovery_responder(actual_port).await;
-    } else {
-        // Nếu ở chế độ Send: Quét nhanh xem có máy nào đang bật receive trong LAN không (500ms)
-        let peers = discovery::scan_for_receivers(500).await;
-        if !peers.is_empty() {
-            println!("  \x1b[32m▶ Tìm thấy máy tính đang chờ nhận trong mạng LAN:\x1b[0m");
-            for (idx, p) in peers.iter().enumerate() {
-                println!("    [{}] \x1b[1m{}\x1b[0m (http://{}:{})", idx + 1, p.name, p.ip, p.http_port);
+    // Neu o che do Wi-Fi binh thuong (Tang 1):
+    if hotspot_session.is_none() {
+        if is_receive_mode {
+            discovery::start_discovery_responder(actual_port).await;
+        } else {
+            // Quet nhanh xem co may nao dang bat receive trong LAN khong (500ms)
+            let peers = discovery::scan_for_receivers(500).await;
+            if !peers.is_empty() {
+                println!("  \x1b[32m▶ Tim thay may tinh dang cho nhan trong mang LAN:\x1b[0m");
+                for (idx, p) in peers.iter().enumerate() {
+                    println!("    [{}] \x1b[1m{}\x1b[0m (http://{}:{})", idx + 1, p.name, p.ip, p.http_port);
+                }
+                println!("    \x1b[90m(Goi y: Dung lenh 'qshare send <tep> --to {}' de ban thang)\x1b[0m\n", peers[0].ip);
             }
-            println!("    \x1b[90m(Gợi ý: Dùng lệnh 'qshare send <tệp> --to {}' để bắn thẳng)\x1b[0m\n", peers[0].ip);
         }
     }
 
-    // In giao diện và mã QR ra terminal
-    qr::print_share_screen(&share_url, &target_info, is_receive_mode, filename.as_deref(), active_pin.as_deref());
+    // In giao dien va ma QR ra man hinh
+    if let Some(ref session) = hotspot_session {
+        hotspot::print_hotspot_screen(session, &share_url, &target_info);
+    } else {
+        qr::print_share_screen(&share_url, &target_info, is_receive_mode, filename.as_deref(), active_pin.as_deref());
+    }
 
     let state = AppState {
         shared_path,
@@ -254,7 +336,7 @@ async fn main() -> Result<()> {
         pin: active_pin,
     };
 
-    // Chạy server Axum
+    // Chay server Axum
     server::run_server(listener, state).await?;
 
     Ok(())

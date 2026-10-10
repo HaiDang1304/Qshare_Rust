@@ -36,6 +36,14 @@ pub struct Cli {
     /// Lắng nghe trên toàn bộ interface (0.0.0.0)
     #[arg(long = "public", default_value_t = false)]
     pub public: bool,
+
+    /// Kích hoạt Tầng 2: Tự động phát Wi-Fi Direct Hotspot P2P (không cần router)
+    #[arg(long = "hotspot", alias = "direct", default_value_t = false)]
+    pub hotspot: bool,
+
+    /// Kích hoạt Tầng 3: Truyền qua mã quang học trên màn hình (không cần sóng vô tuyến)
+    #[arg(long = "optical", default_value_t = false)]
+    pub optical: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -57,6 +65,14 @@ pub enum Commands {
         /// Tùy chọn chỉ định máy nhận trực tiếp (IP:PORT hoặc tên máy)
         #[arg(long = "to")]
         to: Option<String>,
+
+        /// Kích hoạt Tầng 2: Wi-Fi Direct Hotspot P2P
+        #[arg(long = "hotspot", alias = "direct", default_value_t = false)]
+        hotspot: bool,
+
+        /// Kích hoạt Tầng 3: Truyền quang học qua màn hình
+        #[arg(long = "optical", default_value_t = false)]
+        optical: bool,
     },
     /// Mở cổng chờ nhận tệp từ điện thoại hoặc máy tính khác
     Receive {

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QShare - Optical Air-Gapped Reader</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #111827;
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .viewport-card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .scan-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px;
+      height: 220px;
+      border: 2px dashed rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .status-card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 10px;
+      background-color: #374151;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #2563eb;
+      transition: width 0.15s ease-out;
+    }
+
+    .details-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #d1d5db;
+      margin-top: 4px;
+    }
+
+    .text-result {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 14px;
+      color: #e5e7eb;
+      word-break: break-all;
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background-color: #2563eb;
+      color: #ffffff;
+      text-align: center;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn:active {
+      background-color: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background-color: #374151;
+      color: #e5e7eb;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .notice {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>QShare Optical Reader</h1>
+      <p>Bo doc ma quang hoc qua Camera (Hoat dong 100% Offline)</p>
+    </div>
+
+    <div class="viewport-card">
+      <video id="camera-preview" playsinline autoplay muted></video>
+      <div class="scan-guide"></div>
+    </div>
+
+    <div class="status-card">
+      <div class="status-title" id="status-title">Trang thai may quet</div>
+      <div id="status-desc" style="font-size: 14px; color: #f3f4f6;">Dang khoi dong camera...</div>
+
+      <div id="stream-progress" class="hidden">
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="details-row">
+          <span id="file-name">Tep: dang cho...</span>
+          <span id="frame-counter">0 / 0 manh</span>
+        </div>
+      </div>
+
+      <div id="text-result-container" class="hidden">
+        <div class="text-result" id="text-content"></div>
+        <button class="btn" id="copy-btn" onclick="copyText()">Sao chep noi dung</button>
+      </div>
+
+      <button class="btn btn-secondary hidden" id="reset-btn" onclick="resetScanner()">Quet tep moi</button>
+    </div>
+
+    <p class="notice">
+      Huong camera vao man hinh may tinh de doc ma QR.<br>
+      Trang web hoat dong hoan toan cuc bo trong trinh duyet khong can ket noi internet.
+    </p>
+  </div>
+
+  <script>
+    const video = document.getElementById('camera-preview');
+    const statusTitle = document.getElementById('status-title');
+    const statusDesc = document.getElementById('status-desc');
+    const streamProgress = document.getElementById('stream-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const fileNameEl = document.getElementById('file-name');
+    const frameCounterEl = document.getElementById('frame-counter');
+    const textContainer = document.getElementById('text-result-container');
+    const textContent = document.getElementById('text-content');
+    const resetBtn = document.getElementById('reset-btn');
+
+    let stream = null;
+    let detector = null;
+    let scanning = true;
+
+    // Du lieu ghep luong QSO1
+    let activeFileName = null;
+    let totalFrames = 0;
+    let receivedChunks = new Map();
+    let isCompleted = false;
+
+    // CRC32 thuan tuy trong JS
+    function makeCRCTable() {
+      let c;
+      let crcTable = [];
+      for (let n = 0; n < 256; n++) {
+        c = n;
+        for (let k = 0; k < 8; k++) {
+          c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        }
+        crcTable[n] = c;
+      }
+      return crcTable;
+    }
+    const crcTable = makeCRCTable();
+
+    function crc32(uint8Array) {
+      let crc = 0 ^ (-1);
+      for (let i = 0; i < uint8Array.length; i++) {
+        crc = (crc >>> 8) ^ crcTable[(crc ^ uint8Array[i]) & 0xFF];
+      }
+      return (crc ^ (-1)) >>> 0;
+    }
+
+    async function initCamera() {
+      try {
+        if (!('BarcodeDetector' in window)) {
+          statusDesc.textContent = 'Trinh duyet nay chua ho tro BarcodeDetector API. Vui long su dung Google Chrome tren Android hoac Safari tren iOS 17+.';
+          return;
+        }
+
+        detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        video.srcObject = stream;
+        await video.play();
+
+        statusDesc.textContent = 'San sang. Hay huong camera ve man hinh may tinh.';
+        requestAnimationFrame(scanLoop);
+      } catch (err) {
+        statusDesc.textContent = 'Khong the truy cap camera: ' + err.message;
+      }
+    }
+
+    async function scanLoop() {
+      if (!scanning || isCompleted) return;
+
+      if (video.readyState === video.HAVE_ENOUGH_DATA && detector) {
+        try {
+          const codes = await detector.detect(video);
+          if (codes.length > 0) {
+            handleRawData(codes[0].rawValue);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      requestAnimationFrame(scanLoop);
+    }
+
+    function handleRawData(raw) {
+      if (!raw) return;
+
+      // Kiem tra neu la giao thuc Animated QR: QSO1:<name>:<index>:<total>:<crc>:<payload>
+      if (raw.startsWith('QSO1:')) {
+        handleStreamChunk(raw);
+        return;
+      }
+
+      // Neu la van ban hoac du lieu ma don le
+      handleSingleData(raw);
+    }
+
+    function handleStreamChunk(chunkStr) {
+      const parts = chunkStr.split(':');
+      if (parts.length < 6) return;
+
+      const fName = parts[1];
+      const idx = parseInt(parts[2], 10);
+      const total = parseInt(parts[3], 10);
+      const chunkCrc = parts[4];
+      const b64Data = parts.slice(5).join(':');
+
+      if (activeFileName && activeFileName !== fName) {
+        // Co tep moi xuat hien, reset bo dem
+        receivedChunks.clear();
+      }
+
+      activeFileName = fName;
+      totalFrames = total;
+
+      if (!receivedChunks.has(idx)) {
+        receivedChunks.set(idx, b64Data);
+
+        // Cap nhat giao dien
+        streamProgress.classList.remove('hidden');
+        textContainer.classList.add('hidden');
+        resetBtn.classList.remove('hidden');
+
+        const currentCount = receivedChunks.size;
+        const percent = Math.round((currentCount / totalFrames) * 100);
+
+        progressBar.style.width = percent + '%';
+        statusTitle.textContent = 'Dang nhan du lieu quang hoc';
+        statusDesc.textContent = 'Tien do: ' + percent + '% (' + currentCount + '/' + totalFrames + ' manh)';
+        fileNameEl.textContent = 'Tep: ' + activeFileName;
+        frameCounterEl.textContent = currentCount + ' / ' + totalFrames + ' manh';
+
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+
+        // Kiem tra da nhan du tat ca cac manh chua
+        if (currentCount === totalFrames) {
+          finalizeStreamDownload();
+        }
+      }
+    }
+
+    function finalizeStreamDownload() {
+      isCompleted = true;
+      scanning = false;
+
+      statusTitle.textContent = 'Da nhan du 100%';
+      statusDesc.textContent = 'Dang ghep cac manh du lieu va kiem tra toan ven...';
+
+      try {
+        let binaryArrays = [];
+        let totalByteLength = 0;
+
+        for (let i = 1; i <= totalFrames; i++) {
+          const b64 = receivedChunks.get(i);
+          const rawBinary = atob(b64);
+          const bytes = new Uint8Array(rawBinary.length);
+          for (let j = 0; j < rawBinary.length; j++) {
+            bytes[j] = rawBinary.charCodeAt(j);
+          }
+          binaryArrays.push(bytes);
+          totalByteLength += bytes.length;
+        }
+
+        const merged = new Uint8Array(totalByteLength);
+        let offset = 0;
+        for (const arr of binaryArrays) {
+          merged.set(arr, offset);
+          offset += arr.length;
+        }
+
+        statusDesc.textContent = 'Hoan tat. Dang tai tep xuong dien thoai...';
+
+        const blob = new Blob([merged], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = activeFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        statusTitle.textContent = 'Thanh cong';
+        statusDesc.textContent = 'Da nhan tep ' + activeFileName + ' (' + totalByteLength + ' bytes) thanh cong qua anh sang!';
+      } catch (e) {
+        statusTitle.textContent = 'Loi giai ma';
+        statusDesc.textContent = 'Khong the ghep du lieu: ' + e.message;
+      }
+    }
+
+    function handleSingleData(text) {
+      if (textContainer.classList.contains('hidden') || textContent.textContent !== text) {
+        streamProgress.classList.add('hidden');
+        textContainer.classList.remove('hidden');
+        resetBtn.classList.remove('hidden');
+
+        statusTitle.textContent = 'Da nhan van ban / ma';
+        statusDesc.textContent = 'Camera da doc thanh cong 100% noi dung qua quang hoc.';
+        textContent.textContent = text;
+
+        if (navigator.vibrate) {
+          navigator.vibrate(60);
+        }
+      }
+    }
+
+    function copyText() {
+      const text = textContent.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Da sao chep!';
+        setTimeout(() => {
+          btn.textContent = 'Sao chep noi dung';
+        }, 2000);
+      });
+    }
+
+    function resetScanner() {
+      receivedChunks.clear();
+      activeFileName = null;
+      totalFrames = 0;
+      isCompleted = false;
+      scanning = true;
+
+      streamProgress.classList.add('hidden');
+      textContainer.classList.add('hidden');
+      resetBtn.classList.add('hidden');
+      progressBar.style.width = '0%';
+
+      statusTitle.textContent = 'Trang thai may quet';
+      statusDesc.textContent = 'San sang. Hay huong camera ve man hinh may tinh.';
+
+      requestAnimationFrame(scanLoop);
+    }
+
+    window.addEventListener('DOMContentLoaded', initCamera);
+  </script>
+</body>
+</html>

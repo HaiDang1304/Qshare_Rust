@@ -71,6 +71,10 @@ async fn handle_index() -> Html<&'static str> {
     Html(include_str!("web/index.html"))
 }
 
+async fn handle_optical_reader() -> Html<&'static str> {
+    Html(include_str!("web/optical_reader.html"))
+}
+
 async fn handle_info(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let has_file = state.shared_path.is_some();
     let file_name = state.filename.clone().unwrap_or_default();
@@ -106,6 +110,7 @@ pub async fn run_server(
 
     let app = Router::new()
         .route("/", get(handle_index))
+        .route("/optical", get(handle_optical_reader))
         .route("/api/info", get(handle_info))
         .route("/api/verify", post(handle_verify_pin))
         .route("/download", get(handle_download))

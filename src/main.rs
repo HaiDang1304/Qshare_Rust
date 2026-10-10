@@ -113,9 +113,32 @@ async fn main() -> Result<()> {
                 }
                 Some(path)
             }
-            menu::MenuAction::SendOptical { path } => {
+            menu::MenuAction::SendOpticalFile { path } => {
                 is_optical = true;
                 Some(path)
+            }
+            menu::MenuAction::SendOpticalText { text, title } => {
+                optical::run_optical_text_transmission(&text, &title).await?;
+                return Ok(());
+            }
+            menu::MenuAction::ExportOpticalReader { dest_dir } => {
+                match optical::export_optical_reader_html(&dest_dir) {
+                    Ok(path) => {
+                        println!();
+                        println!("  \x1b[32m[qshare]\x1b[0m Da tao bo quet quang hoc offline thanh cong:");
+                        println!("  \x1b[1m{}\x1b[0m", path.display());
+                        println!();
+                        println!("  \x1b[1;33mHuong dan su dung tren Dien thoai:\x1b[0m");
+                        println!("  - Chuyen tep nay sang dien thoai 1 lan duy nhat (qua Zalo, Email, AirDrop hoac Wi-Fi).");
+                        println!("  - Tren dien thoai, mo tep bang Safari (iOS) hoac Chrome (Android).");
+                        println!("  - Huong camera vao man hinh PC: Trinh duyet tu dong nhan ma, ghep du lieu va tai tep ve may!");
+                        println!();
+                    }
+                    Err(e) => {
+                        eprintln!("  \x1b[31m[Loi]\x1b[0m Khong the xuat file: {e}");
+                    }
+                }
+                return Ok(());
             }
             menu::MenuAction::SendDirect { peer, path } => {
                 let abs_p = std::fs::canonicalize(&path).unwrap_or_else(|_| path.clone());

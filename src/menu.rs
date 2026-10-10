@@ -24,8 +24,15 @@ pub enum MenuAction {
         path: PathBuf,
         pin: Option<String>,
     },
-    SendOptical {
+    SendOpticalFile {
         path: PathBuf,
+    },
+    SendOpticalText {
+        text: String,
+        title: String,
+    },
+    ExportOpticalReader {
+        dest_dir: PathBuf,
     },
     Exit,
 }
@@ -205,19 +212,55 @@ pub async fn run_interactive_menu() -> Result<MenuAction, Box<dyn std::error::Er
             "4" => {
                 // Tang 3: Optical Air-Gapped Transmission
                 println!();
-                println!("  \x1b[90m(Che do Quang hoc: Chieu ma len man hinh, hoan toan khong can card Wi-Fi hay day cap)\x1b[0m");
-                let path_str = read_user_input("  \x1b[1;32m▶ Nhap duong dan tep / van ban muon truyen quang hoc: \x1b[0m");
-                if path_str.eq_ignore_ascii_case("q") || path_str.is_empty() {
-                    continue;
-                }
-                let path = clean_path_input(&path_str);
+                println!("  \x1b[1;37m┌─────────────────────────────────────────────────────────────┐\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m  \x1b[1;33mTANG 3: TRUYEN QUANG HOC (OPTICAL AIR-GAPPED)              \x1b[0m\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m├─────────────────────────────────────────────────────────────┤\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m  \x1b[1;32m[1]\x1b[0m \x1b[1mNhap Van ban / Mat khau / Link truc tiep de ban sang DT\x1b[0m\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m      (Camera goc cua dien thoai quet 1 lan la doc duoc ngay)\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m                                                             \x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m  \x1b[1;32m[2]\x1b[0m \x1b[1mChon tep tu may tinh de chieu luong ma quang hoc        \x1b[0m\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m      (Tep nho: 1 ma tinh; Tep lon: luong ma chuyen dong)    \x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m                                                             \x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m  \x1b[1;32m[3]\x1b[0m \x1b[1mXuat trang Web Quet Quang Hoc Offline cho Dien thoai    \x1b[0m\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m      (Tao file optical_reader.html de mo offline tren DT)   \x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m                                                             \x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m│\x1b[0m  \x1b[1;31m[0]\x1b[0m \x1b[1mQuay lai menu chinh                                    \x1b[0m\x1b[1;37m│\x1b[0m");
+                println!("  \x1b[1;37m└─────────────────────────────────────────────────────────────┘\x1b[0m");
+                println!();
 
-                if !path.exists() {
-                    println!("  \x1b[31m[!] Khong tim thay tep:\x1b[0m {}\n", path.display());
-                    continue;
+                let sub = read_user_input("  \x1b[1;36m▶ Nhap lua chon quang hoc [1-3, 0]: \x1b[0m");
+                match sub.as_str() {
+                    "1" => {
+                        println!();
+                        let text = read_user_input("  \x1b[1;32m▶ Nhap van ban / mat khau / link muon ban sang DT: \x1b[0m");
+                        if text.is_empty() {
+                            continue;
+                        }
+                        let title_in = read_user_input("  \x1b[1;33m▶ Nhap tieu de (nhan Enter de mac dinh 'Ghi chu'): \x1b[0m");
+                        let title = if title_in.is_empty() { "Ghi chu".to_string() } else { title_in };
+                        return Ok(MenuAction::SendOpticalText { text, title });
+                    }
+                    "2" => {
+                        println!();
+                        println!("  \x1b[90m(Goi y: Keo tha tep tu File Explorer vao day, hoac go 'q' de quay lai)\x1b[0m");
+                        let path_str = read_user_input("  \x1b[1;32m▶ Nhap duong dan tep muon truyen quang hoc: \x1b[0m");
+                        if path_str.eq_ignore_ascii_case("q") || path_str.is_empty() {
+                            continue;
+                        }
+                        let path = clean_path_input(&path_str);
+                        if !path.exists() {
+                            println!("  \x1b[31m[!] Khong tim thay tep:\x1b[0m {}\n", path.display());
+                            continue;
+                        }
+                        return Ok(MenuAction::SendOpticalFile { path });
+                    }
+                    "3" => {
+                        println!();
+                        let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+                        return Ok(MenuAction::ExportOpticalReader { dest_dir: current_dir });
+                    }
+                    _ => continue,
                 }
-
-                return Ok(MenuAction::SendOptical { path });
             }
             "5" => {
                 println!();

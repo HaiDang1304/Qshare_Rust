@@ -54,4 +54,4 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
     echo "[*] Hãy chạy 'source $SHELL_RC' hoặc mở terminal mới để bắt đầu sử dụng."
 fi
 
-echo -e "\n🎉 Hoàn tất! Gõ 'qshare --help' để bắt đầu sử dụng."
+echo -e "\n[+] Hoàn tất! Gõ 'qshare --help' để bắt đầu sử dụng."

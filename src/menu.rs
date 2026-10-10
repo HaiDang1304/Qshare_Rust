@@ -198,7 +198,7 @@ pub async fn run_interactive_menu() -> Result<MenuAction, Box<dyn std::error::Er
                         _ => continue,
                     }
                 } else {
-                    println!("  \x1b[32m✔ Đã tìm thấy {} máy tính đang chờ nhận:\x1b[0m", peers.len());
+                    println!("  \x1b[32m[+] Đã tìm thấy {} máy tính đang chờ nhận:\x1b[0m", peers.len());
                     for (i, p) in peers.iter().enumerate() {
                         println!("    \x1b[1;32m[{}]\x1b[0m \x1b[1m{}\x1b[0m ({}:{})", i + 1, p.name, p.ip, p.http_port);
                     }

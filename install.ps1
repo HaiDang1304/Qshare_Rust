@@ -66,6 +66,6 @@ if ($UserPath -notlike "*$InstallDir*") {
     Write-Host "[+] $InstallDir đã có sẵn trong PATH." -ForegroundColor Green
 }
 
-Write-Host "`n🎉 Hoàn tất! Bạn có thể mở Terminal mới và sử dụng ngay bằng lệnh:" -ForegroundColor Green
+Write-Host "`n[+] Hoàn tất! Bạn có thể mở Terminal mới và sử dụng ngay bằng lệnh:" -ForegroundColor Green
 Write-Host "   qshare <ten_file>" -ForegroundColor Cyan
 Write-Host "   qshare -r" -ForegroundColor Cyan

@@ -1,31 +1,42 @@
-# qshare (Quick QR Share)
+# qshare
 
-> **Zero-config, peer-to-peer file transport via terminal QR code, PIN security and LAN auto-discovery.**
+> **Zero-config, peer-to-peer file transport via terminal QR code, PIN security, and LAN auto-discovery.**  
+> *Created by **HDFIT***
 
-`qshare` là công cụ dòng lệnh (CLI) siêu nhẹ viết bằng **Rust**, hỗ trợ truyền tệp tin hai chiều tốc độ cao:
-- **PC ⇄ Điện thoại**: Quét mã QR trên terminal để tải xuống hoặc gửi tệp lên tức thì (không cần cài app).
-- **PC ⇄ Laptop / PC**: Tự động dò tìm trong mạng LAN (tương tự AirDrop) hoặc copy 1 dòng lệnh terminal tải ngay mà không cần camera.
-- **Bảo mật Wi-Fi công cộng**: Khóa phiên truyền tệp bằng **Mã PIN 4 số** chống quét lén cổng.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
+
+`qshare` is an ultra-lightweight (~1.1 MB), blazing-fast command-line tool written in **Rust** for seamless two-way file sharing across devices on your local network:
+- **PC to Mobile**: Scan a high-contrast terminal QR code with your default phone camera to download or upload photos, videos, and documents instantly -- **no mobile app installation required**.
+- **PC to PC / Laptop**: Automatic LAN discovery (AirDrop-like UDP beaconing) finds other machines on the same Wi-Fi with zero configuration, featuring direct TCP transfer and real-time progress bars.
+- **Public Wi-Fi Security**: Protect shared sessions with a **4-digit PIN code** to block network scanners and unauthorized access.
+- **Interactive TUI**: Sleek terminal menu (inspired by Daytona, Codex, and Kiro) with drag-and-drop file path support for beginners.
 
 ---
 
-##  Cài đặt siêu tốc (1 dòng lệnh duy nhất)
+## Quick Install (Single Command)
 
-###  Windows (PowerShell)
+### Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/HaiDang1304/Qshare_Rust/main/install.ps1 | iex
 ```
 
-###  macOS /  Linux (Terminal)
+### macOS / Linux (Terminal)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/HaiDang1304/Qshare_Rust/main/install.sh | bash
 ```
 
+### Cargo (From Source)
+```bash
+cargo install --git https://github.com/HaiDang1304/Qshare_Rust.git
+```
+
 ---
 
-## Giao diện Tương tác TUI (Dành cho người mới bắt đầu)
+## Interactive TUI (Beginner Friendly)
 
-Chỉ cần gõ `qshare` (không cần tham số), một màn hình chào Daytona/Kiro chuyên nghiệp sẽ xuất hiện với menu song ngữ (Tiếng Việt & English):
+Simply run `qshare` without any arguments (or double-click `qshare.exe`) to launch the interactive terminal interface:
 
 ```text
      ██████╗ ███████╗██╗  ██╗ █████╗ ██████╗ ███████╗
@@ -35,7 +46,7 @@ Chỉ cần gõ `qshare` (không cần tham số), một màn hình chào Dayton
     ╚██████╔╝███████║██║  ██║██║  ██║██║  ██║███████╗
      ╚══▀▀═╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
 
-  Quick QR Share (qshare) v0.1.0 ── Zero-config Peer-to-Peer Transport
+  Quick QR Share (qshare) v0.1.0 ── BY HDFIT ── Zero-config Peer-to-Peer Transport
   IP LAN: 192.168.1.157 | Cổng mặc định: 7878 | Trạng thái: Sẵn sàng / Ready
 
   ┌─────────────────────────────────────────────────────────────┐
@@ -58,96 +69,127 @@ Chỉ cần gõ `qshare` (không cần tham số), một màn hình chào Dayton
   │                                                             │
   │  [0] Thoát / Exit                                          │
   └─────────────────────────────────────────────────────────────┘
+
+  ▶ Enter your choice [1-5, 0]:
 ```
 
-> **Mẹo:** Bạn có thể **kéo thả tệp hoặc thư mục từ File Explorer** trực tiếp vào cửa sổ terminal! Công cụ tự động xử lý dấu ngoặc kép và khoảng trắng.
+> **Tip:** You can **drag and drop files or folders directly from File Explorer into the terminal window**! `qshare` automatically sanitizes quotes, spaces, and shell formatting.
 
 ---
 
-## Hướng dẫn sử dụng CLI trực tiếp (Power Users)
+## Direct CLI Usage (Power Users)
 
-### 1. Gửi tệp từ Máy tính sang Điện thoại
+### 1. Send File / Folder to Mobile (QR Code)
 ```bash
-qshare send tailieu.pdf
-# hoặc ngắn gọn:
-qshare tailieu.pdf
+# Share a single file
+qshare report.pdf
+# or explicitly:
+qshare send report.pdf
+
+# Share an entire directory (zipped on-the-fly without temporary disk storage)
+qshare ./Photos
 ```
-Màn hình xuất hiện mã QR. Mở ứng dụng Camera trên iPhone / Android quét mã để mở **giao diện Tải về (Download Only)**.
+A high-contrast QR code will render on your terminal. Open your iPhone or Android default Camera app to view and download the file.
 
 ---
 
-### 2. Gửi tệp từ Điện thoại lên Máy tính
+### 2. Receive Files from Mobile to PC
 ```bash
 qshare receive
-# hoặc viết tắt:
+# or short form:
 qshare -r
+
+# Specify a custom destination directory:
+qshare receive -o "D:/Incoming"
 ```
-Màn hình xuất hiện mã QR. Dùng điện thoại quét mã để mở **giao diện Tải lên (Upload Only)**, chọn ảnh, video hoặc tài liệu từ thư viện máy để gửi thẳng lên máy tính.
+Scan the terminal QR code from your phone to open a clean, lightweight web page where you can upload photos, videos, or documents directly to your computer.
 
 ---
 
-### 3. Bảo vệ bằng mã PIN khi ở Wi-Fi công cộng (`--pin`) 
-Khi ở quán cà phê, thư viện hoặc Wi-Fi công ty, bạn có thể khóa phiên truyền tệp:
-```bash
-# Tự động sinh mã PIN ngẫu nhiên 4 số:
-qshare send tailieu.pdf --pin
+### 3. PIN Code Protection for Public Wi-Fi (`--pin`)
+When working in coffee shops, libraries, or shared corporate networks, prevent port scanning and unauthorized downloads by locking your session:
 
-# Hoặc tự đặt mã PIN cố định:
-qshare send tailieu.pdf --pin 8888
+```bash
+# Generate a random 4-digit PIN code automatically:
+qshare send secret.pdf --pin
+
+# Or specify a custom PIN code:
+qshare send secret.pdf --pin 8888
 qshare receive --pin 1234
 ```
-- Trên **Terminal máy tính**: Hiển thị rõ mã PIN (ví dụ: `8888`).
-- Trên **Điện thoại**: Trình duyệt sẽ hiện ô yêu cầu nhập đúng mã PIN mới mở khóa quyền Tải xuống hoặc Tải lên.
-- **Người lạ rà quét IP trong mạng**: Mọi yêu cầu không có mã PIN sẽ bị chặn đứng ngay lập tức với mã lỗi `401 Unauthorized`.
+- **Terminal**: Displays the active PIN code.
+- **Web Interface**: Visitors must enter the correct PIN code before access to download or upload is granted.
+- **Security**: Any requests lacking the correct PIN are immediately rejected with `401 Unauthorized`.
 
 ---
 
-### 4. Truyền siêu tốc giữa 2 Máy tính (Laptop ⇄ PC)
+### 4. Direct PC-to-PC File Transfer (LAN AirDrop)
 
-#### Tự động tìm máy tính trong mạng LAN (AirDrop cho PC)
-- **Máy nhận (Laptop)** mở chế độ chờ:
-  ```bash
-  qshare receive
-  ```
-- **Máy gửi (PC)** gõ lệnh gửi:
-  ```bash
-  qshare send video_nang.mp4
-  ```
-  Máy gửi sẽ **tự động quét và phát hiện các máy tính đang chờ trong mạng Wi-Fi**:
-  ```text
-  ▶ Tìm thấy máy tính đang chờ nhận trong mạng LAN:
-    [1] Laptop-HaiDang (http://192.168.1.157:7878)
-  ```
-  Để bắn tệp trực tiếp sang máy nhận với thanh tiến trình:
-  ```bash
-  qshare send video_nang.mp4 --to 192.168.1.157
-  ```
+#### Automatic LAN Peer Discovery
+1. **Receiver Machine (Laptop)** runs:
+   ```bash
+   qshare receive
+   ```
+2. **Sender Machine (PC)** runs:
+   ```bash
+   qshare send project.zip
+   ```
+   The sender scans the local network via UDP beaconing and displays online receivers:
+   ```text
+   > Discovered online receivers in local Wi-Fi:
+     [1] Laptop-HaiDang (http://192.168.1.157:7878)
+   ```
+3. To beam the file directly to the receiver with a live progress bar:
+   ```bash
+   qshare send project.zip --to 192.168.1.157
+   ```
 
-#### Tải nhanh bằng 1 dòng lệnh Terminal (không cần cài app)
-Khi chạy `qshare send <tệp>`, terminal luôn in sẵn lệnh tải cho máy tính khác:
-- **Windows**: `iwr -useb http://192.168.1.157:7878/download -OutFile tailieu.pdf`
+#### Quick Terminal Download (No App Needed)
+When running `qshare send <file>`, terminal commands are ready for other machines without installing `qshare`:
+- **Windows**: `iwr -useb http://192.168.1.157:7878/download -OutFile report.pdf`
 - **Linux / macOS**: `curl -O http://192.168.1.157:7878/download`
 
 ---
 
-##  Các tùy chọn nâng cao
-```bash
-qshare --help
+## CLI Options & Flags
+
+```text
+Usage: qshare [OPTIONS] [PATH] [COMMAND]
 
 Commands:
-  send     Gửi tệp/thư mục sang điện thoại (qua QR) hoặc máy tính khác (qua LAN)
-  receive  Mở cổng chờ nhận tệp từ điện thoại hoặc máy tính khác
+  send     Send file/folder to mobile (via QR) or another PC (via LAN)
+  receive  Open receiver mode to accept files from mobile or other PCs
+  help     Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [PATH]   Path to file or folder to share (backward-compatible)
 
 Options:
-      --pin [<PIN>]         Bảo vệ bằng mã PIN (tự sinh 4 số nếu để trống)
-  -p, --port <PORT>         Cổng ưu tiên (mặc định: 7878, tự nhảy port nếu trùng)
-  -o, --output <DIR>        Thư mục lưu tệp nhận được (mặc định ./Downloads)
-      --public              Lắng nghe trên toàn bộ interface (0.0.0.0)
-  -h, --help                In trợ giúp
-  -V, --version             In phiên bản
+  -r, --receive             Enable receive mode (backward-compatible)
+  -p, --port <PORT>         Preferred port (default: 7878, auto-increments if busy)
+  -o, --output <DIR>        Output directory for received files (default: ./Downloads)
+      --pin [<PIN>]         Enable PIN protection (auto-generates 4-digit code if empty)
+      --public              Bind to all interfaces (0.0.0.0)
+  -h, --help                Print help
+  -V, --version             Print version
 ```
 
 ---
 
-## Giấy phép (License)
-Dự án được phát hành dưới giấy phép MIT License.
+## Performance & Design Highlights
+
+| Feature | `qshare` | Other CLI Share Tools |
+| :--- | :--- | :--- |
+| **Binary Size** | **~1.1 MB** (LTO, strip) | 15 MB - 50 MB (Go/Node/Electron) |
+| **Startup Time** | **< 10ms** | 100ms - 2s |
+| **Dependencies** | **Zero runtime dependencies** | Requires Node, Python, or Go |
+| **Directory Sharing** | **On-the-fly Zip streaming** (Zero disk writes) | Creates large temp files on disk |
+| **Terminal QR** | **Dual half-block Unicode** (`█`, `▀`, `▄`) | Inverted / broken ANSI colors |
+| **LAN Discovery** | **Built-in UDP beaconing** | Manual IP configuration |
+| **Security** | **PIN Auth + Virtual NIC filtering** | Open without authentication |
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

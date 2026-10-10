@@ -466,7 +466,7 @@
         if (xhr.status >= 200 && xhr.status < 300) {
           progressBar.style.width = '100%';
           progressPercent.innerText = '100%';
-          showNotice('success', '✔ Đã gửi thành công ' + files.length + ' tệp lên máy tính!');
+          showNotice('success', 'Đã gửi thành công ' + files.length + ' tệp lên máy tính.');
           fileInput.value = '';
           selectedFilesText.innerText = 'Hoàn tất.';
           setTimeout(() => { progressSection.style.display = 'none'; }, 3500);

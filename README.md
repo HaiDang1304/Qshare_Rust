@@ -1,4 +1,4 @@
-# ⚡ qshare (Quick QR Share)
+# qshare (Quick QR Share)
 
 > **Zero-config, peer-to-peer file transport via terminal QR code, PIN security and LAN auto-discovery.**
 
@@ -9,21 +9,21 @@
 
 ---
 
-## 🚀 Cài đặt siêu tốc (1 dòng lệnh duy nhất)
+##  Cài đặt siêu tốc (1 dòng lệnh duy nhất)
 
-### 💻 Windows (PowerShell)
+###  Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/HaiDang1304/Qshare_Rust/main/install.ps1 | iex
 ```
 
-### 🍎 macOS / 🐧 Linux (Terminal)
+###  macOS /  Linux (Terminal)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/HaiDang1304/Qshare_Rust/main/install.sh | bash
 ```
 
 ---
 
-## 🖥️ Giao diện Tương tác TUI (Dành cho người mới bắt đầu)
+## Giao diện Tương tác TUI (Dành cho người mới bắt đầu)
 
 Chỉ cần gõ `qshare` (không cần tham số), một màn hình chào Daytona/Kiro chuyên nghiệp sẽ xuất hiện với menu song ngữ (Tiếng Việt & English):
 
@@ -60,11 +60,11 @@ Chỉ cần gõ `qshare` (không cần tham số), một màn hình chào Dayton
   └─────────────────────────────────────────────────────────────┘
 ```
 
-> 💡 **Mẹo:** Bạn có thể **kéo thả tệp hoặc thư mục từ File Explorer** trực tiếp vào cửa sổ terminal! Công cụ tự động xử lý dấu ngoặc kép và khoảng trắng.
+> **Mẹo:** Bạn có thể **kéo thả tệp hoặc thư mục từ File Explorer** trực tiếp vào cửa sổ terminal! Công cụ tự động xử lý dấu ngoặc kép và khoảng trắng.
 
 ---
 
-## 🛠️ Hướng dẫn sử dụng CLI trực tiếp (Power Users)
+## Hướng dẫn sử dụng CLI trực tiếp (Power Users)
 
 ### 1. Gửi tệp từ Máy tính sang Điện thoại
 ```bash
@@ -86,7 +86,7 @@ Màn hình xuất hiện mã QR. Dùng điện thoại quét mã để mở **gi
 
 ---
 
-### 3. Bảo vệ bằng mã PIN khi ở Wi-Fi công cộng (`--pin`) 🔒
+### 3. Bảo vệ bằng mã PIN khi ở Wi-Fi công cộng (`--pin`) 
 Khi ở quán cà phê, thư viện hoặc Wi-Fi công ty, bạn có thể khóa phiên truyền tệp:
 ```bash
 # Tự động sinh mã PIN ngẫu nhiên 4 số:
@@ -104,7 +104,7 @@ qshare receive --pin 1234
 
 ### 4. Truyền siêu tốc giữa 2 Máy tính (Laptop ⇄ PC)
 
-#### 🔥 Tự động tìm máy tính trong mạng LAN (AirDrop cho PC)
+#### Tự động tìm máy tính trong mạng LAN (AirDrop cho PC)
 - **Máy nhận (Laptop)** mở chế độ chờ:
   ```bash
   qshare receive
@@ -123,14 +123,14 @@ qshare receive --pin 1234
   qshare send video_nang.mp4 --to 192.168.1.157
   ```
 
-#### 📋 Tải nhanh bằng 1 dòng lệnh Terminal (không cần cài app)
+#### Tải nhanh bằng 1 dòng lệnh Terminal (không cần cài app)
 Khi chạy `qshare send <tệp>`, terminal luôn in sẵn lệnh tải cho máy tính khác:
 - **Windows**: `iwr -useb http://192.168.1.157:7878/download -OutFile tailieu.pdf`
 - **Linux / macOS**: `curl -O http://192.168.1.157:7878/download`
 
 ---
 
-## ⚙️ Các tùy chọn nâng cao
+##  Các tùy chọn nâng cao
 ```bash
 qshare --help
 
@@ -149,5 +149,5 @@ Options:
 
 ---
 
-## 📄 Giấy phép (License)
+## Giấy phép (License)
 Dự án được phát hành dưới giấy phép MIT License.
